@@ -325,8 +325,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var tslib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! tslib */ "mrSG");
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "fXoL");
 /* harmony import */ var app_data__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! app/data */ "AVqD");
-/* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @angular/common/http */ "tk/3");
-/* harmony import */ var rxjs_operators__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! rxjs/operators */ "kU1M");
+/* harmony import */ var app_models_bookTrackerError__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! app/models/bookTrackerError */ "+5Uy");
+/* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @angular/common/http */ "tk/3");
+/* harmony import */ var rxjs__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! rxjs */ "qCKp");
+/* harmony import */ var rxjs_operators__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! rxjs/operators */ "kU1M");
+
+
 
 
 
@@ -347,46 +351,55 @@ let DataService = class DataService {
         return app_data__WEBPACK_IMPORTED_MODULE_2__["allReaders"].find((reader) => reader.readerID === id);
     }
     getAllBooks() {
-        return this.http.get("/api/books");
+        return this.http
+            .get("/api/books")
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["catchError"])((err) => this.handleHttpError(err)));
+    }
+    handleHttpError(error) {
+        let dataError = new app_models_bookTrackerError__WEBPACK_IMPORTED_MODULE_3__["BookTrackerError"]();
+        dataError.errorNumber = 100;
+        dataError.message = error.statusText;
+        dataError.friendlyMessage = `An error occured retrieving data.`;
+        return Object(rxjs__WEBPACK_IMPORTED_MODULE_5__["throwError"])(dataError);
     }
     getBookById(id) {
         return this.http.get(`/api/books/${id}`, {
-            headers: new _angular_common_http__WEBPACK_IMPORTED_MODULE_3__["HttpHeaders"]({
+            headers: new _angular_common_http__WEBPACK_IMPORTED_MODULE_4__["HttpHeaders"]({
                 Accept: "applicatin/json",
                 Authorization: "my-token",
             }),
         });
     }
     getOldBookById(id) {
-        return this.http.get(`/api/books/${id}`).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])((book) => ({
+        return this.http.get(`/api/books/${id}`).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["map"])((book) => ({
             bookTitle: book.title,
             year: book.publicationYear,
-        })), Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["tap"])(console.log));
+        })), Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["tap"])(console.log));
     }
     addBook(newBook) {
         return this.http.post("/api/books", newBook, {
-            headers: new _angular_common_http__WEBPACK_IMPORTED_MODULE_3__["HttpHeaders"]({
+            headers: new _angular_common_http__WEBPACK_IMPORTED_MODULE_4__["HttpHeaders"]({
                 "Content-Type": "application/json",
             }),
         });
     }
     updateBook(updatedBook) {
         return this.http.put(`/api/books/${updatedBook.bookID}`, updatedBook, {
-            headers: new _angular_common_http__WEBPACK_IMPORTED_MODULE_3__["HttpHeaders"]({
+            headers: new _angular_common_http__WEBPACK_IMPORTED_MODULE_4__["HttpHeaders"]({
                 "Content-Type": "application/json",
             }),
         });
     }
     deleteBook(bookID) {
         return this.http.delete(`/api/books/${bookID}`, {
-            headers: new _angular_common_http__WEBPACK_IMPORTED_MODULE_3__["HttpHeaders"]({
+            headers: new _angular_common_http__WEBPACK_IMPORTED_MODULE_4__["HttpHeaders"]({
                 "Content-Type": "application/json",
             }),
         });
     }
 };
 DataService.ctorParameters = () => [
-    { type: _angular_common_http__WEBPACK_IMPORTED_MODULE_3__["HttpClient"] }
+    { type: _angular_common_http__WEBPACK_IMPORTED_MODULE_4__["HttpClient"] }
 ];
 DataService = Object(tslib__WEBPACK_IMPORTED_MODULE_0__["__decorate"])([
     Object(_angular_core__WEBPACK_IMPORTED_MODULE_1__["Injectable"])({
@@ -424,7 +437,9 @@ let DashboardComponent = class DashboardComponent {
         this.title = title;
     }
     ngOnInit() {
-        this.dataService.getAllBooks().subscribe((data) => (this.allBooks = data), console.log, () => console.log(`Complete`));
+        this.dataService.getAllBooks().subscribe(
+        //TODO: any
+        (data) => (this.allBooks = data), (err) => console.log(err.friendlyMessage), () => console.log(`All done getting books.`));
         this.allReaders = this.dataService.getAllReaders();
         this.mostPopularBook = this.dataService.mostPopularBook;
         this.title.setTitle(`Book Tracker`);
